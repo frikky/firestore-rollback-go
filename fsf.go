@@ -17,11 +17,11 @@ type StringValue struct {
 }
 
 type ArrayValue struct {
-	Values Value `json:"values"`
+	Values []Value `json:"values"`
 }
 
 type Value struct {
-	MapValue []MapValue `json:"mapValue"`
+	MapValue MapValue `json:"mapValue"`
 }
 
 type MapValue struct {
@@ -32,15 +32,15 @@ type SelectedCharities struct {
 	ArrayValue ArrayValue `json:"arrayValue"`
 }
 
-// This is fucking stupid - firestore values
-type Contribution struct {
-	AmountGiven       IntegerValue      `json:"amountGiven"`
-	SelectedCharities SelectedCharities `json:"selectedCharities"`
-}
-
 type Fields struct {
-	Amount IntegerValue `json:"amount"`
-	Id     StringValue  `json:"id"`
+	Amount           IntegerValue `json:"amount"`
+	Name             StringValue  `json:"name"`
+	Id               StringValue  `json:"id"`
+	Description      StringValue  `json:"description"`
+	Image            StringValue  `json:"image"`
+	ShortDescription StringValue  `json:"shortDescription"`
+	SmallImage       StringValue  `json:"smallImage"`
+	Reference        StringValue  `json:"reference"`
 }
 
 /*
@@ -72,20 +72,24 @@ func iterate(subValue interface{}) interface{} {
 			return values[0]
 		}
 
-		if curType == "main.ArrayValue" {
+		if curType == "fsf.ArrayValue" {
 			values[i] = iterate(values[i])
-		} else if curType == "main.Value" {
+		} else if curType == "fsf.Value" {
 			values[i] = iterate(values[i])
-		} else if curType == "[]main.MapValue" {
-			tmpvalues := make([]interface{}, len(values[i].([]MapValue)))
-			for iter, sub := range values[i].([]MapValue) {
+		} else if curType == "fsf.Values" {
+			values[i] = iterate(values[i])
+		} else if curType == "fsf.MapValue" {
+			values[i] = iterate(values[i])
+		} else if curType == "[]fsf.Value" {
+			tmpvalues := make([]interface{}, len(values[i].([]Value)))
+			for iter, sub := range values[i].([]Value) {
 				tmpvalues[iter] = iterate(sub)
 			}
 
 			values[i] = tmpvalues
-		} else if curType == "main.Fields" {
+		} else if curType == "fsf.Fields" {
 			values[i] = iterate(values[i])
-		} else if curType == "main.IntegerValue" {
+		} else if curType == "fsf.IntegerValue" {
 			normalSet = true
 			tmp, err := strconv.Atoi(values[i].(IntegerValue).IntegerValue)
 			if err != nil {
@@ -93,11 +97,15 @@ func iterate(subValue interface{}) interface{} {
 			}
 
 			normalValues[fieldName] = tmp
-		} else if curType == "main.StringValue" {
+		} else if curType == "fsf.StringValue" {
 			normalSet = true
 			normalValues[fieldName] = values[i].(StringValue).StringValue
+		} else if curType == "string" {
+			normalSet = true
+			normalValues[fieldName] = values[i]
 		} else {
-			log.Printf("UNHANDLED TYPE: %s", curType)
+			log.Printf("UNHANDLED TYPE: %s\nValue: %s, Fieldname: %s", curType, values[i], fieldName)
+			normalValues[fieldName] = values[i]
 		}
 
 		if normalSet {
@@ -126,12 +134,12 @@ func GetInterface(subValue interface{}) map[string]interface{} {
 		fieldName := typeOfS.Field(i).Name
 
 		curType := fmt.Sprintf("%s", reflect.TypeOf(values[i]))
-		if curType == "main.IntegerValue" {
+		if curType == "fsf.IntegerValue" {
 			newValues[fieldName], err = strconv.Atoi(values[i].(IntegerValue).IntegerValue)
 			if err != nil {
 				panic("Error handling integervalue")
 			}
-		} else if curType == "main.StringValue" {
+		} else if curType == "fsf.StringValue" {
 			newValues[fieldName] = values[i].(StringValue).StringValue
 		} else {
 			tmpItem := iterate(values[i])
