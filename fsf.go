@@ -112,7 +112,7 @@ func iterate(subValue interface{}) interface{} {
 	}
 }
 
-func getInterface(subValue interface{}) map[string]interface{} {
+func GetInterface(subValue interface{}) map[string]interface{} {
 	v := reflect.ValueOf(subValue)
 
 	newValues := make(map[string]interface{})
