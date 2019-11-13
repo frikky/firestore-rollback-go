@@ -93,7 +93,8 @@ func iterate(subValue interface{}) interface{} {
 			normalSet = true
 			tmp, err := strconv.Atoi(values[i].(IntegerValue).IntegerValue)
 			if err != nil {
-				panic("Error handling integervalue")
+				log.Println("Error handling integervalue for field %s", fieldName)
+				continue
 			}
 
 			normalValues[fieldName] = tmp
@@ -137,7 +138,8 @@ func GetInterface(subValue interface{}) map[string]interface{} {
 		if curType == "fsf.IntegerValue" {
 			newValues[fieldName], err = strconv.Atoi(values[i].(IntegerValue).IntegerValue)
 			if err != nil {
-				panic("Error handling integervalue")
+				log.Println("Error handling integervalue for field %s", fieldName)
+				continue
 			}
 		} else if curType == "fsf.StringValue" {
 			newValues[fieldName] = values[i].(StringValue).StringValue
