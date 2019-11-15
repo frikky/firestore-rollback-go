@@ -69,6 +69,7 @@ func Rollback(ctx context.Context, client *firestore.Client, firestoreLocation s
 
 	collections := []string{}
 	docs := []string{}
+	log.Printf("RAFFLENAME: %s", firestoreLocation)
 	for cnt, item := range strings.Split(firestoreLocation, "/") {
 		if cnt < startLocation {
 			continue
@@ -85,6 +86,8 @@ func Rollback(ctx context.Context, client *firestore.Client, firestoreLocation s
 		log.Printf("COUNTER: %d, item: %s", cnt, item)
 	}
 
+	log.Printf("Collections: %#v", collections)
+	log.Printf("Docs: %#v", docs)
 	updateData := GetInterface(subValue)
 	log.Printf("Ready data: %#v", updateData)
 	if len(collections) == 0 || len(docs) == 0 {
