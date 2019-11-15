@@ -73,9 +73,6 @@ func Rollback(ctx context.Context, client *firestore.Client, firestoreLocation s
 	for cnt, item := range strings.Split(firestoreLocation, "/") {
 		if cnt < startLocation {
 			continue
-		} else if cnt == startLocation {
-			collections = append(collections, item)
-			continue
 		}
 
 		if cnt%2 == checkNumber {
@@ -187,7 +184,7 @@ func iterate(subValue interface{}) interface{} {
 			}
 		} else if curType == "map[string]interface {}" {
 			log.Printf("How do I handle map[string]interface? \nValue: %#v\nFieldname: %s", values[i], fieldName)
-			normalValues[fieldName] = values[i]
+			values[i] = iterate(values[i])
 		} else {
 			log.Printf("UNHANDLED TYPE: %s\n Value: %#v\n Fieldname: %s", curType, values[i], fieldName)
 			//values[i] = iterate(values[i])
