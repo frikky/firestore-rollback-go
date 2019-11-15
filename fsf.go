@@ -132,8 +132,11 @@ func iterate(subValue interface{}) interface{} {
 
 				normalSet = true
 			}
+		} else if curType == "map[string]interface {}" {
+			log.Printf("How do I handle map[string]interface? \nValue: %#v\nFieldname: %s", values[i], fieldName)
+			normalValues[fieldName] = values[i]
 		} else {
-			log.Printf("UNHANDLED TYPE: %s. Value: %s, Fieldname: %s", curType, values[i], fieldName)
+			log.Printf("UNHANDLED TYPE: %s\n Value: %#v\n Fieldname: %s", curType, values[i], fieldName)
 			//values[i] = iterate(values[i])
 
 			// THis is just as a test. Idk if it will work or not for weird values lol
