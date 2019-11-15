@@ -226,4 +226,5 @@ func Rollback(ctx context.Context, client *firestore.Client, firestoreLocation s
 	updateData := GetInterface(subValue)
 	setter, err := clientDoc.Set(ctx, updateData)
 	return updateData, setter, err
+
 }
