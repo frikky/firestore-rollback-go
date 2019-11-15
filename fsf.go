@@ -58,6 +58,42 @@ type MapValue struct {
 	Fields interface{} `json:"fields"`
 }
 
+func Rollback(ctx context.Context, client *firestore.Client, firestoreLocation string, subValue interface{}) (map[string]interface{}, *firestore.WriteResult, error) {
+	checkNumber := 0
+	startLocation := 5
+	if !strings.HasPrefix(firestoreLocation, "project") {
+		checkNumber = 1
+		startLocation = 0
+	}
+
+	collections := []string{}
+	docs := []string{}
+	for cnt, item := range strings.Split(firestoreLocation, "/") {
+		if cnt < startLocation {
+			continue
+		} else if cnt == startLocation {
+			collections = append(collections, item)
+			continue
+		}
+
+		if cnt%2 == checkNumber {
+			docs = append(docs, item)
+		} else {
+			collections = append(collections, item)
+		}
+		log.Printf("COUNTER: %d, item: %s", cnt, item)
+	}
+
+	clientDoc := client.Collection(collections[0]).Doc(docs[0])
+	for i := 1; i < len(collections); i += 2 {
+		clientDoc = clientDoc.Collection(collections[i]).Doc(docs[i])
+	}
+
+	updateData := GetInterface(subValue)
+	setter, err := clientDoc.Set(ctx, updateData)
+	return updateData, setter, err
+}
+
 /*
 Function that loops over and finds the integervalue and stringvalues before putting them in
 their allocated spaces
@@ -190,41 +226,4 @@ func GetInterface(subValue interface{}) map[string]interface{} {
 	}
 
 	return newValues
-}
-
-func Rollback(ctx context.Context, client *firestore.Client, firestoreLocation string, subValue interface{}) (map[string]interface{}, *firestore.WriteResult, error) {
-	checkNumber := 0
-	startLocation := 5
-	if !strings.HasPrefix(firestoreLocation, "project") {
-		checkNumber = 1
-		startLocation = 0
-	}
-
-	collections := []string{}
-	docs := []string{}
-	for cnt, item := range strings.Split(firestoreLocation, "/") {
-		if cnt < startLocation {
-			continue
-		} else if cnt == startLocation {
-			collections = append(collections, item)
-			continue
-		}
-
-		if cnt%2 == checkNumber {
-			docs = append(docs, item)
-		} else {
-			collections = append(collections, item)
-		}
-		log.Printf("COUNTER: %d, item: %s", cnt, item)
-	}
-
-	clientDoc := client.Collection(collections[0]).Doc(docs[0])
-	for i := 1; i < len(collections); i += 2 {
-		clientDoc = clientDoc.Collection(collections[i]).Doc(docs[i])
-	}
-
-	updateData := GetInterface(subValue)
-	setter, err := clientDoc.Set(ctx, updateData)
-	return updateData, setter, err
-
 }
