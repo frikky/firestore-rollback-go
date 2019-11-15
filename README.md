@@ -29,7 +29,7 @@ go get github.com/frikky/firestore-rollback-go
 Define according to sample: https://github.com/GoogleCloudPlatform/golang-samples/blob/master/functions/firebase/upper/upper.go
 ```go
 import (
-	"github.com/frikky/firestore-rollback-go"
+	rollback "github.com/frikky/firestore-rollback-go"
 )
 
 // Data from cloud function comes here
@@ -51,16 +51,26 @@ type FirestoreValue struct {
 }
 
 // MyData represents a value from Firestore. The type definition depends on the
-// format of your database.
+// format of your database. 
+// string = StringValue
+// int/int64 = IntegerValue
+// bool = BooleanValue 
+// .. etc
 type MyData struct {
-	Original struct {
-		StringValue string `json:"stringValue"`
-	} `json:"original"`
+	Original rollback.StringValue `json:"original"`
 }
 
 // Now that you got it parsed into MyData, you will have to fix the data to rollback
-// This will give you back a map[string]interface that can be sent back to backend
+// This will give you back a map[string]interface
+// Rolls back your data for you (with transforms)
+writtenData, firestoreReturn, err := rollback.Rollback(
+	ctx,
+	firestoreClient,
+	firestoreValue.Name, 		// The path from the struct above
+	firestoreValue.Fields, 		// The parsed data you have 
+)
 
+// To just get the interface decoded itself into a map[string]interface{}
 data := fsf.GetInterface(oldValue.Fields)
 // ret, err := client.Collection("THISCOLLECTION").Doc("THISDOC").Set(ctx, data)
 // if err != nil {
@@ -69,7 +79,6 @@ data := fsf.GetInterface(oldValue.Fields)
 ```
 
 ## TBD: Make transformer for normal struct -> firestore struct
-## TBD: Make a rollback(name, data) event to handle everything for you
 
 ## Firestore cloud functions
 How cloud functions are/can be used:
