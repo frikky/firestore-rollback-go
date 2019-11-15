@@ -1,4 +1,4 @@
-package fsf_test
+package rollback_test
 
 import (
 	"testing"
