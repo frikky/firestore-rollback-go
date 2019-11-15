@@ -1,15 +1,18 @@
 package fsf
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"cloud.google.com/go/firestore"
 )
 
 type IntegerValue struct {
-	IntegerValue string `json:"integerValue"`
+	IntegerValue string `json:"integerValue,omitempty"`
 }
 type StringValue struct {
 	StringValue string `json:"stringValue"`
@@ -39,16 +42,17 @@ type ArrayValue struct {
 
 // This is inside an array again. Always confuse.
 type Value struct {
-	MapValue       MapValue       `json:"mapValue,omitempty"`
-	StringValue    StringValue    `json:"stringValue,omitempty"`
-	IntegerValue   IntegerValue   `json:"integerValue,omitempty"`
-	ArrayValue     ArrayValue     `json:"arrayValue,omitempty"`
-	BooleanValue   BooleanValue   `json:"booleanValue,omitempty"`
-	DoubleValue    DoubleValue    `json:"doubleValue,omitempty"`
-	TimestampValue TimestampValue `json:"timestampValue,omitempty"`
-	BytesValue     BytesValue     `json:"bytesValue,omitempty"`
-	ReferenceValue ReferenceValue `json:"referenceValue,omitempty"`
+	MapValue     MapValue     `json:"mapValue,omitempty"`
+	StringValue  StringValue  `json:"stringValue,omitempty"`
+	IntegerValue IntegerValue `json:"integerValue,omitempty"`
+	ArrayValue   ArrayValue   `json:"arrayValue,omitempty"`
+	BooleanValue BooleanValue `json:"booleanValue,omitempty"`
+	DoubleValue  DoubleValue  `json:"doubleValue,omitempty"`
 }
+
+//TimestampValue TimestampValue `json:"timestampValue,omitempty"`
+//BytesValue     BytesValue     `json:"bytesValue,omitempty"`
+//ReferenceValue ReferenceValue `json:"referenceValue,omitempty"`
 
 type MapValue struct {
 	Fields interface{} `json:"fields"`
@@ -186,4 +190,40 @@ func GetInterface(subValue interface{}) map[string]interface{} {
 	}
 
 	return newValues
+}
+
+func Rollback(ctx context.Context, client *firestore.Client, firestoreLocation string, subValue interface{}) (map[string]interface{}, *firestore.WriteResult, error) {
+	checkNumber := 0
+	startLocation := 5
+	if !strings.HasPrefix(firestoreLocation, "project") {
+		checkNumber = 1
+		startLocation = 0
+	}
+
+	collections := []string{}
+	docs := []string{}
+	for cnt, item := range strings.Split(firestoreLocation, "/") {
+		if cnt < startLocation {
+			continue
+		} else if cnt == startLocation {
+			collections = append(collections, item)
+			continue
+		}
+
+		if cnt%2 == checkNumber {
+			docs = append(docs, item)
+		} else {
+			collections = append(collections, item)
+		}
+		log.Printf("COUNTER: %d, item: %s", cnt, item)
+	}
+
+	clientDoc := client.Collection(collections[0]).Doc(docs[0])
+	for i := 1; i < len(collections); i += 2 {
+		clientDoc = clientDoc.Collection(collections[i]).Doc(docs[i])
+	}
+
+	updateData := GetInterface(subValue)
+	setter, err := clientDoc.Set(ctx, updateData)
+	return updateData, setter, err
 }
