@@ -134,11 +134,11 @@ func iterate(subValue interface{}) interface{} {
 			}
 		} else {
 			log.Printf("UNHANDLED TYPE: %s. Value: %s, Fieldname: %s", curType, values[i], fieldName)
-			values[i] = iterate(values[i])
+			//values[i] = iterate(values[i])
 
 			// THis is just as a test. Idk if it will work or not for weird values lol
-			//normalSet = true
-			//normalValues[fieldName] = values[i]
+			normalSet = true
+			normalValues[fieldName] = values[i]
 		}
 	}
 
