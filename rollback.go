@@ -2,6 +2,7 @@ package rollback
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -84,14 +85,18 @@ func Rollback(ctx context.Context, client *firestore.Client, firestoreLocation s
 		log.Printf("COUNTER: %d, item: %s", cnt, item)
 	}
 
+	updateData := GetInterface(subValue)
+	if len(collections) == 0 {
+		return updateData, nil, errors.New("No firestore location found.")
+	}
 	clientDoc := client.Collection(collections[0]).Doc(docs[0])
 	for i := 1; i < len(collections); i += 2 {
 		clientDoc = clientDoc.Collection(collections[i]).Doc(docs[i])
 	}
 
-	updateData := GetInterface(subValue)
 	setter, err := clientDoc.Set(ctx, updateData)
 	return updateData, setter, err
+
 }
 
 /*
@@ -122,20 +127,23 @@ func iterate(subValue interface{}) interface{} {
 		fieldName := typeOfS.Field(i).Name
 
 		curType := fmt.Sprintf("%s", reflect.TypeOf(values[i]))
-		if curType == "fsf.ArrayValue" || strings.Contains(curType, "ArrayValue") {
+		if curType == "rollback.ArrayValue" || strings.Contains(curType, "ArrayValue") {
 			values[i] = iterate(values[i])
-		} else if curType == "fsf.MapValue" || strings.Contains(curType, "MapValue") {
+		} else if curType == "rollback.MapValue" || strings.Contains(curType, "MapValue") {
 			values[i] = iterate(values[i])
-		} else if curType == "[]fsf.Value" {
+		} else if curType == "[]rollback.Value" {
 			tmpvalues := make([]interface{}, len(values[i].([]Value)))
 			for iter, sub := range values[i].([]Value) {
 				tmpvalues[iter] = iterate(sub)
 			}
 
 			values[0] = tmpvalues
-		} else if curType == "fsf.Fields" || strings.Contains(curType, "Fields") {
+		} else if curType == "rollback.Fields" || strings.Contains(curType, "Fields") {
 			values[i] = iterate(values[i])
-		} else if curType == "fsf.IntegerValue" || strings.Contains(curType, "IntegerValue") {
+		} else if curType == "rollback.IntegerValue" || strings.Contains(curType, "IntegerValue") {
+			if len(values[i].(IntegerValue).IntegerValue) == 0 {
+				continue
+			}
 
 			tmp, err := strconv.Atoi(values[i].(IntegerValue).IntegerValue)
 			if err != nil {
@@ -144,7 +152,7 @@ func iterate(subValue interface{}) interface{} {
 
 			normalSet = true
 			normalValues[fieldName] = tmp
-		} else if curType == "fsf.DoubleValue" || strings.Contains(curType, "DoubleValue") {
+		} else if curType == "rollback.DoubleValue" || strings.Contains(curType, "DoubleValue") {
 			tmp, err := strconv.ParseFloat(values[i].(DoubleValue).DoubleValue, 64)
 			if err != nil {
 				continue
@@ -152,14 +160,14 @@ func iterate(subValue interface{}) interface{} {
 
 			normalSet = true
 			normalValues[fieldName] = tmp
-		} else if curType == "fsf.StringValue" || strings.Contains(curType, "StringValue") {
+		} else if curType == "rollback.StringValue" || strings.Contains(curType, "StringValue") {
 			if len(values[i].(StringValue).StringValue) > 0 {
 				normalSet = true
 				normalValues[fieldName] = values[i].(StringValue).StringValue
 			}
-		} else if curType == "fsf.NullValue" || strings.Contains(curType, "NullValue") {
+		} else if curType == "rollback.NullValue" || strings.Contains(curType, "NullValue") {
 			normalValues[fieldName] = nil
-		} else if curType == "fsf.BooleanValue" || strings.Contains(curType, "BooleanValue") {
+		} else if curType == "rollback.BooleanValue" || strings.Contains(curType, "BooleanValue") {
 			value := values[i].(BooleanValue).BooleanValue
 			if len(value) > 0 {
 				if value == "true" {
@@ -211,13 +219,13 @@ func GetInterface(subValue interface{}) map[string]interface{} {
 
 		curType := fmt.Sprintf("%s", reflect.TypeOf(values[i]))
 		//log.Printf("TYPE: %s", curType)
-		if curType == "fsf.IntegerValue" {
+		if curType == "rollback.IntegerValue" {
 			newValues[fieldName], err = strconv.Atoi(values[i].(IntegerValue).IntegerValue)
 			if err != nil {
 				//log.Printf("Error handling integervalue for field %s", fieldName)
 				continue
 			}
-		} else if curType == "fsf.StringValue" {
+		} else if curType == "rollback.StringValue" {
 			newValues[fieldName] = values[i].(StringValue).StringValue
 		} else {
 			tmpItem := iterate(values[i])
