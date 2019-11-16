@@ -196,7 +196,12 @@ func iterate(subValue interface{}) interface{} {
 			} else if newType == "string" {
 				normalValues[fieldName] = val.(string)
 			} else if newType == "int" {
-				normalValues[fieldName] = val.(int)
+				tmpVal, err := strconv.Atoi(val.(string))
+				if err != nil {
+					continue
+				}
+
+				normalValues[fieldName] = tmpVal
 			} else {
 				log.Printf("NEW UNHANDLED TYPE (TBD): %s", newType)
 			}
