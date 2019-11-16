@@ -84,7 +84,7 @@ func Rollback(ctx context.Context, client *firestore.Client, firestoreLocation s
 
 	updateData := GetInterface(subValue)
 	log.Printf("Ready data: %#v", updateData)
-	updateData = GetInterface(subValue)
+	updateData = GetInterface(updateData)
 	log.Printf("Ready data2: %#v", updateData)
 
 	if len(collections) == 0 || len(docs) == 0 {
