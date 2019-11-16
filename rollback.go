@@ -84,6 +84,9 @@ func Rollback(ctx context.Context, client *firestore.Client, firestoreLocation s
 
 	updateData := GetInterface(subValue)
 	log.Printf("Ready data: %#v", updateData)
+	updateData = GetInterface(subValue)
+	log.Printf("Ready data2: %#v", updateData)
+
 	if len(collections) == 0 || len(docs) == 0 {
 		return updateData, nil, errors.New("No firestore location found.")
 	}
