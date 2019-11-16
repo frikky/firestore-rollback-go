@@ -245,6 +245,13 @@ func handleMap(subValue map[string]interface{}) interface{} {
 	newValues := make(map[string]interface{})
 	for key, value := range subValue {
 		curType := fmt.Sprintf("%s", reflect.TypeOf(value))
+
+		// FIXME - this might be a maaajor bug :)
+		if key == "Fields" || key == "fields" {
+			log.Printf("FIIEEEELDS!!")
+			return value
+		}
+
 		// FIXME - add all the types
 		if key == "stringValue" || key == "integerValue" {
 			return value
