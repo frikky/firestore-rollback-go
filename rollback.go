@@ -119,7 +119,7 @@ bytesvalue,
 referencevalue,
 geopointvalue
 
-Special:
+Special (these are really weird to iter):
 map[string]interface {}
 []interface {}
 */
@@ -193,14 +193,16 @@ func iterate(subValue interface{}) interface{} {
 			}
 		} else if curType == "map[string]interface {}" {
 			log.Printf("NEW: How do I handle map[string]interface? \nValue: %#v\nFieldname: %s", values[i], fieldName)
-			if fieldName == "Fields" || fieldName == "fields" {
-				return values[0].(map[string]interface{})
-			}
 
 			val := handleMap(values[i].(map[string]interface{}))
+
 			newType := fmt.Sprintf("%s", reflect.TypeOf(val))
 			if newType == "map[string]interface {}" {
-				log.Printf("MAP: %s??", fieldName)
+				if fieldName == "Fields" || fieldName == "fields" {
+					log.Printf("FIELDS!!!")
+					return val.(map[string]interface{})
+				}
+
 				normalValues[fieldName] = val.(map[string]interface{})
 				normalSet = true
 			} else if newType == "string" {
