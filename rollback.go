@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	//"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -69,7 +70,6 @@ func Rollback(ctx context.Context, client *firestore.Client, firestoreLocation s
 
 	collections := []string{}
 	docs := []string{}
-	log.Printf("RAFFLENAME: %s", firestoreLocation)
 	for cnt, item := range strings.Split(firestoreLocation, "/") {
 		if cnt < startLocation {
 			continue
@@ -80,11 +80,8 @@ func Rollback(ctx context.Context, client *firestore.Client, firestoreLocation s
 		} else {
 			collections = append(collections, item)
 		}
-		log.Printf("COUNTER: %d, item: %s", cnt, item)
 	}
 
-	log.Printf("Collections: %#v", collections)
-	log.Printf("Docs: %#v", docs)
 	updateData := GetInterface(subValue)
 	log.Printf("Ready data: %#v", updateData)
 	if len(collections) == 0 || len(docs) == 0 {
@@ -113,11 +110,14 @@ timestampvalue,
 bytesvalue,
 referencevalue,
 geopointvalue
+
+Special:
+map[string]interface {}
+[]interface {}
 */
 func iterate(subValue interface{}) interface{} {
 	v := reflect.ValueOf(subValue)
 
-	// This will stop working if its a map
 	values := make([]interface{}, v.NumField())
 	typeOfS := v.Type()
 
@@ -129,6 +129,7 @@ func iterate(subValue interface{}) interface{} {
 		fieldName := typeOfS.Field(i).Name
 
 		curType := fmt.Sprintf("%s", reflect.TypeOf(values[i]))
+		//log.Printf("TYPE: %s", curType)
 		if curType == "rollback.ArrayValue" || strings.Contains(curType, "ArrayValue") {
 			values[i] = iterate(values[i])
 		} else if curType == "rollback.MapValue" || strings.Contains(curType, "MapValue") {
@@ -184,7 +185,7 @@ func iterate(subValue interface{}) interface{} {
 			}
 		} else if curType == "map[string]interface {}" {
 			log.Printf("How do I handle map[string]interface? \nValue: %#v\nFieldname: %s", values[i], fieldName)
-			values[i] = iterate(values[i])
+			values[i] = values[i]
 		} else {
 			log.Printf("UNHANDLED TYPE: %s\n Value: %#v\n Fieldname: %s", curType, values[i], fieldName)
 			//values[i] = iterate(values[i])
@@ -196,13 +197,65 @@ func iterate(subValue interface{}) interface{} {
 	}
 
 	if normalSet {
-		//log.Printf("PRE: %#v", values)
-		// FIXME - this might be wrong
-		//log.Printf("NORMAL %#v", normalValues)
 		return normalValues
 	}
 
 	return values[0]
+}
+
+func iterateSlice(subValue []interface{}) interface{} {
+	values := make([]interface{}, len(subValue))
+	for i := 0; i < len(subValue); i++ {
+		values[i] = subValue[i]
+
+		curType := fmt.Sprintf("%s", reflect.TypeOf(values[i]))
+		if curType == "map[string]interface {}" {
+			values[i] = handleMap(values[i].(map[string]interface{}))
+		} else {
+			log.Printf("Missing []interface handler for %s", curType)
+		}
+	}
+
+	return values
+}
+
+func handleMap(subValue map[string]interface{}) interface{} {
+	newValues := make(map[string]interface{})
+	for key, value := range subValue {
+		curType := fmt.Sprintf("%s", reflect.TypeOf(value))
+		// FIXME - add all the types
+		if key == "stringValue" || key == "integerValue" {
+			return value
+		}
+
+		if curType == "string" || curType == "int" {
+			newValues[key] = value
+			continue
+		}
+
+		// Array inside interface
+		if curType == "[]interface {}" {
+			val := iterateSlice(value.([]interface{}))
+			newValues[key] = val
+		} else if curType == "map[string]interface {}" {
+			val := handleMap(value.(map[string]interface{}))
+			newType := fmt.Sprintf("%s", reflect.TypeOf(val))
+
+			if newType == "map[string]interface {}" {
+				newValues[key] = val.(map[string]interface{})
+			} else if newType == "string" {
+				newValues[key] = val.(string)
+			} else if newType == "int" {
+				newValues[key] = val.(int)
+			} else {
+				log.Printf("UNHANDLED TYPE (TBD): %s", newType)
+			}
+		} else {
+			log.Printf("UNHANDLED TYPE (TBD OUTER): %s", curType)
+		}
+	}
+
+	return newValues
 }
 
 // passedField takes arrayValue
@@ -210,6 +263,12 @@ func GetInterface(subValue interface{}) map[string]interface{} {
 	var err error
 	v := reflect.ValueOf(subValue)
 
+	// The type should basically never be this.
+	if (fmt.Sprintf("%s", reflect.TypeOf(subValue))) == "map[string]interface {}" {
+		return handleMap(subValue.(map[string]interface{})).(map[string]interface{})
+	}
+
+	//values := make([]interface{}, v.NumField())
 	newValues := make(map[string]interface{})
 	values := make([]interface{}, v.NumField())
 	typeOfS := v.Type()
@@ -220,11 +279,9 @@ func GetInterface(subValue interface{}) map[string]interface{} {
 		fieldName := typeOfS.Field(i).Name
 
 		curType := fmt.Sprintf("%s", reflect.TypeOf(values[i]))
-		//log.Printf("TYPE: %s", curType)
 		if curType == "rollback.IntegerValue" {
 			newValues[fieldName], err = strconv.Atoi(values[i].(IntegerValue).IntegerValue)
 			if err != nil {
-				//log.Printf("Error handling integervalue for field %s", fieldName)
 				continue
 			}
 		} else if curType == "rollback.StringValue" {
