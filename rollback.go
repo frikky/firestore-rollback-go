@@ -82,10 +82,15 @@ func Rollback(ctx context.Context, client *firestore.Client, firestoreLocation s
 		}
 	}
 
+	// THis is stupid, but one iteration never did it.. D:
 	updateData := GetInterface(subValue)
 	log.Printf("Ready data: %#v", updateData)
 	updateData = GetInterface(updateData)
 	log.Printf("Ready data2: %#v", updateData)
+	updateData = GetInterface(updateData)
+	log.Printf("Ready data3: %#v", updateData)
+	updateData = GetInterface(updateData)
+	log.Printf("Ready data4: %#v", updateData)
 
 	if len(collections) == 0 || len(docs) == 0 {
 		return updateData, nil, errors.New("No firestore location found.")
