@@ -184,8 +184,19 @@ func iterate(subValue interface{}) interface{} {
 				normalSet = true
 			}
 		} else if curType == "map[string]interface {}" {
-			log.Printf("How do I handle map[string]interface? \nValue: %#v\nFieldname: %s", values[i], fieldName)
-			values[i] = values[i]
+			log.Printf("NEW: How do I handle map[string]interface? \nValue: %#v\nFieldname: %s", values[i], fieldName)
+			val := handleMap(values[i].(map[string]interface{}))
+			newType := fmt.Sprintf("%s", reflect.TypeOf(val))
+			if newType == "map[string]interface {}" {
+				log.Printf("MAP??")
+				normalValues[fieldName] = val.(map[string]interface{})
+			} else if newType == "string" {
+				normalValues[fieldName] = val.(string)
+			} else if newType == "int" {
+				normalValues[fieldName] = val.(int)
+			} else {
+				log.Printf("NEW UNHANDLED TYPE (TBD): %s", newType)
+			}
 		} else {
 			log.Printf("UNHANDLED TYPE: %s\n Value: %#v\n Fieldname: %s", curType, values[i], fieldName)
 			//values[i] = iterate(values[i])
