@@ -132,7 +132,7 @@ func iterate(subValue interface{}) interface{} {
 		fieldName := typeOfS.Field(i).Name
 
 		curType := fmt.Sprintf("%s", reflect.TypeOf(values[i]))
-		//log.Printf("TYPE: %s", curType)
+		log.Printf("TYPE: %s", curType)
 		if curType == "rollback.ArrayValue" || strings.Contains(curType, "ArrayValue") {
 			values[i] = iterate(values[i])
 		} else if curType == "rollback.MapValue" || strings.Contains(curType, "MapValue") {
@@ -193,8 +193,10 @@ func iterate(subValue interface{}) interface{} {
 			if newType == "map[string]interface {}" {
 				log.Printf("MAP??")
 				normalValues[fieldName] = val.(map[string]interface{})
+				normalSet = true
 			} else if newType == "string" {
 				normalValues[fieldName] = val.(string)
+				normalSet = true
 			} else if newType == "int" {
 				tmpVal, err := strconv.Atoi(val.(string))
 				if err != nil {
@@ -202,6 +204,7 @@ func iterate(subValue interface{}) interface{} {
 				}
 
 				normalValues[fieldName] = tmpVal
+				normalSet = true
 			} else {
 				log.Printf("NEW UNHANDLED TYPE (TBD): %s", newType)
 			}
@@ -247,7 +250,18 @@ func handleMap(subValue map[string]interface{}) interface{} {
 			return value
 		}
 
-		if curType == "string" || curType == "int" {
+		log.Printf("curtype: %s, %#v", curType, value)
+		if curType == "string" {
+			tmpVal, err := strconv.Atoi(value.(string))
+			if err == nil {
+				newValues[key] = tmpVal
+				continue
+			}
+
+			newValues[key] = value
+			continue
+		} else if curType == "int" {
+
 			newValues[key] = value
 			continue
 		}
@@ -279,7 +293,6 @@ func handleMap(subValue map[string]interface{}) interface{} {
 
 // passedField takes arrayValue
 func GetInterface(subValue interface{}) map[string]interface{} {
-	var err error
 	v := reflect.ValueOf(subValue)
 
 	// The type should basically never be this.
@@ -299,10 +312,11 @@ func GetInterface(subValue interface{}) map[string]interface{} {
 
 		curType := fmt.Sprintf("%s", reflect.TypeOf(values[i]))
 		if curType == "rollback.IntegerValue" {
-			newValues[fieldName], err = strconv.Atoi(values[i].(IntegerValue).IntegerValue)
+			tmpVal, err := strconv.Atoi(values[i].(IntegerValue).IntegerValue)
 			if err != nil {
 				continue
 			}
+			newValues[fieldName] = tmpVal
 		} else if curType == "rollback.StringValue" {
 			newValues[fieldName] = values[i].(StringValue).StringValue
 		} else {
