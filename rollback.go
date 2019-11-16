@@ -188,10 +188,14 @@ func iterate(subValue interface{}) interface{} {
 			}
 		} else if curType == "map[string]interface {}" {
 			log.Printf("NEW: How do I handle map[string]interface? \nValue: %#v\nFieldname: %s", values[i], fieldName)
+			if fieldName == "Fields" || fieldName == "fields" {
+				return values[0].(map[string]interface{})
+			}
+
 			val := handleMap(values[i].(map[string]interface{}))
 			newType := fmt.Sprintf("%s", reflect.TypeOf(val))
 			if newType == "map[string]interface {}" {
-				log.Printf("MAP??")
+				log.Printf("MAP: %s??", fieldName)
 				normalValues[fieldName] = val.(map[string]interface{})
 				normalSet = true
 			} else if newType == "string" {
@@ -248,6 +252,7 @@ func handleMap(subValue map[string]interface{}) interface{} {
 
 		// FIXME - this might be a maaajor bug :)
 		if key == "Fields" || key == "fields" {
+			// This is a reserved field. Not sure how to handle this in a map.
 			log.Printf("FIIEEEELDS!!")
 			return value
 		}
