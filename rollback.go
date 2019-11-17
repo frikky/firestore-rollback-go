@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"cloud.google.com/go/firestore"
+	"github.com/iancoleman/strcase"
 )
 
 type IntegerValue struct {
@@ -84,13 +85,9 @@ func Rollback(ctx context.Context, client *firestore.Client, firestoreLocation s
 
 	// THis is stupid, but one iteration never did it.. D:
 	updateData := GetInterface(subValue)
-	log.Printf("Ready data: %#v", updateData)
+	//log.Printf("Ready data: %#v", updateData)
 	updateData = GetInterface(updateData)
 	log.Printf("Ready data2: %#v", updateData)
-	updateData = GetInterface(updateData)
-	log.Printf("Ready data3: %#v", updateData)
-	updateData = GetInterface(updateData)
-	log.Printf("Ready data4: %#v", updateData)
 
 	if len(collections) == 0 || len(docs) == 0 {
 		return updateData, nil, errors.New("No firestore location found.")
@@ -135,9 +132,10 @@ func iterate(subValue interface{}) interface{} {
 	for i := 0; i < v.NumField(); i++ {
 		values[i] = v.Field(i).Interface()
 		fieldName := typeOfS.Field(i).Name
+		fieldName = strcase.ToLowerCamel(fieldName)
 
 		curType := fmt.Sprintf("%s", reflect.TypeOf(values[i]))
-		log.Printf("TYPE: %s", curType)
+		//log.Printf("TYPE: %s", curType)
 		if curType == "rollback.ArrayValue" || strings.Contains(curType, "ArrayValue") {
 			values[i] = iterate(values[i])
 		} else if curType == "rollback.MapValue" || strings.Contains(curType, "MapValue") {
@@ -256,6 +254,7 @@ func handleMap(subValue map[string]interface{}) interface{} {
 	newValues := make(map[string]interface{})
 	for key, value := range subValue {
 		curType := fmt.Sprintf("%s", reflect.TypeOf(value))
+		key = strcase.ToLowerCamel(key)
 
 		// FIXME - this might be a maaajor bug :)
 		if key == "Fields" || key == "fields" {
@@ -269,7 +268,7 @@ func handleMap(subValue map[string]interface{}) interface{} {
 			return value
 		}
 
-		log.Printf("curtype: %s, %#v", curType, value)
+		//log.Printf("curtype: %s, %#v", curType, value)
 		if curType == "string" {
 			tmpVal, err := strconv.Atoi(value.(string))
 			if err == nil {
@@ -328,6 +327,7 @@ func GetInterface(subValue interface{}) map[string]interface{} {
 	for i := 0; i < v.NumField(); i++ {
 		values[i] = v.Field(i).Interface()
 		fieldName := typeOfS.Field(i).Name
+		fieldName = strcase.ToLowerCamel(fieldName)
 
 		curType := fmt.Sprintf("%s", reflect.TypeOf(values[i]))
 		if curType == "rollback.IntegerValue" {
